@@ -6,7 +6,7 @@ _gittag=2.0
 pkgrel=3
 pkgdesc="A free messaging app for WhatsApp, Facebook Messenger, Telegram, Slack and more."
 arch=('i686' 'x86_64')
-depends=('gconf')
+depends=('gconf' 'libnotify')
 url="http://meetfranz.com/"
 license=("custom:github")
 

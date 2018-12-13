@@ -1,45 +1,55 @@
-# Maintainer: Morris Jobke <hey AT morrisjobke.de>
-# Maintainer: Martin Mlynář <nexus+arch@smoula.net>
+# Maintainer: Ayrton Araujo <root@ayr-ton.net>
+# Contributor: Fabien LEFEBVRE <contact@d1ceward.com>
+
 pkgname=dokku
-pkgver=0.8.0
+pkgver=0.13.3
 pkgrel=1
 pkgdesc="Docker powered mini-Heroku in around 100 lines of Bash."
 arch=(any)
 url="https://github.com/dokku/dokku"
 license=(MIT)
-makedepends=(
-	'plugn'
-)
 depends=(
-	'docker'
-	'nginx'
-	'plugn>=0.2.2'
-	'sshcommand>=0.4.0'
-	'herokuish>=0.3.24'
-	'openbsd-netcat'
-	'gliderlabs-sigil'
-	'lsb-release'
-	'bind-tools'
-	'python'
+  'bind-tools'
+  'docker'
+  'gliderlabs-sigil'
+  'herokuish'
+  'net-tools'
+  'nginx'
+  'plugn'
+  'rsyslog'
+  'sshcommand'
 )
-
 source=(
-  "https://github.com/dokku/dokku/archive/v${pkgver}.zip"
-  "${pkgname}.install"
+  "https://github.com/dokku/dokku/archive/v$pkgver.zip"
+  "$pkgname.install"
 )
-sha256sums=('d50624eee715b6c67cd58f471855c90caf176c99d91e393771c5ac52dd6de7b1'
-            '99a9d421fe100ef889f0f23be409289c8e627e55e6d5231c79a50d5da290eeb7')
-install=${pkgname}.install
+sha256sums=('36531c453c248572c42fe13688809fca67be435f4f6209056f90625be26337f5'
+            '65175269313c2afcabec038d3994d940b7e60db91be270da11bfefc3febb9452')
+install="$pkgname.install"
 
 package() {
-  cd "${srcdir}/"
+  cd "$srcdir/$pkgname-$pkgver"
 
-  cd "$pkgname-$pkgver"
+  # Install executable
+  install -Dm755 dokku "$pkgdir/usr/bin/dokku"
 
-  install -Dm755 dokku "${pkgdir}/usr/bin/dokku"
+  # Build go plugins
+  make go-build
 
-  mkdir -p "${pkgdir}/var/lib/dokku/core-plugins/available"
-  cp -r plugins/* "${pkgdir}/var/lib/dokku/core-plugins/available"
-  find plugins/ -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | while read plugin; do touch "${pkgdir}/var/lib/dokku/core-plugins/available/${plugin}/.core"; done
+  # Move all files in place
+  mkdir -p "$pkgdir/var/lib/dokku/core-plugins/available"
+  cp -r plugins/* "$pkgdir/var/lib/dokku/core-plugins/available"
+  cp common.mk "$pkgdir/var/lib/dokku/core-plugins/common.mk"
 
+  find plugins/ -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | while read plugin; do
+    # Clean plugins
+    cd "$pkgdir/var/lib/dokku/core-plugins/available/$plugin"
+    if [ -e Makefile ]; then make src-clean ;fi
+
+    touch "$pkgdir/var/lib/dokku/core-plugins/available/$plugin/.core"
+  done
+  rm "$pkgdir/var/lib/dokku/core-plugins/common.mk"
+
+  # Version
+  echo $pkgver > "$pkgdir/var/lib/dokku/VERSION"
 }
